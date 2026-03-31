@@ -26,6 +26,10 @@ class HomeCart extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColor.secondaryColor,
           borderRadius: BorderRadiusGeometry.circular(12.r),
+          border: Border.all(
+            color: AppColor.appBarColor, // border green
+            width: 2.w,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
