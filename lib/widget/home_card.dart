@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:rafeeq_saleh/styling/app_color.dart';
 
-class HomeCart extends StatelessWidget {
+class HomeCard extends StatelessWidget {
   final String imagePath;
   final String title;
   final String details;
   final Function()? onClick;
 
-  const HomeCart({
+  const HomeCard({
     super.key,
     this.onClick,
     required this.imagePath,
@@ -26,6 +26,10 @@ class HomeCart extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColor.secondaryColor,
           borderRadius: BorderRadiusGeometry.circular(12.r),
+          border: Border.all(
+            color: AppColor.appBarColor, // border green
+            width: 2.w,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),

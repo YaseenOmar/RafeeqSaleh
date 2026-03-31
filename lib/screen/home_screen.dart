@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hijri/hijri_calendar.dart';
+import 'package:intl/intl.dart';
 import 'package:rafeeq_saleh/styling/app_color.dart';
-import 'package:rafeeq_saleh/widget/home_cart.dart';
+import 'package:rafeeq_saleh/widget/home_card.dart';
 import 'package:rafeeq_saleh/widget/my_app_bar.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -9,6 +11,30 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final nowHijri = HijriCalendar.now();
+
+    final hijriMonthNamesAr = {
+      'Muharram': 'محرم',
+      'Safar': 'صفر',
+      'Rabi al-Awwal': 'ربيع الأول',
+      'Rabi al-Thani': 'ربيع الآخر',
+      'Jumada al-Awwal': 'جمادى الأولى',
+      'Jumada al-Thani': 'جمادى الآخرة',
+      'Rajab': 'رجب',
+      'Sha’ban': 'شعبان',
+      'Ramadan': 'رمضان',
+      'Shawwal': 'شوال',
+      'Dhu al-Qi’dah': 'ذو القعدة',
+      'Dhu al-Hijjah': 'ذو الحجة',
+    };
+
+    String arabicHijriMonth =
+        hijriMonthNamesAr[nowHijri.longMonthName] ?? nowHijri.longMonthName;
+    String formattedHijri =
+        '${nowHijri.hDay} - $arabicHijriMonth - ${nowHijri.hYear}';
+
+    final formattedDate = DateFormat('dd - MMMM - yyyy', 'ar').format(now);
     return Scaffold(
       backgroundColor: AppColor.primaryColor,
       appBar: MyAppBar(),
@@ -33,7 +59,7 @@ class HomeScreen extends StatelessWidget {
                     Column(
                       children: [
                         Text(
-                          '24 - رمضان - 1445',
+                          formattedDate,
                           style: TextStyle(
                             color: AppColor.whiteColor,
                             fontSize: 16.sp,
@@ -42,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 6.h),
                         Text(
-                          '16 -  مارس - 2026',
+                          formattedHijri,
                           style: TextStyle(
                             color: AppColor.whiteColor,
                             fontSize: 16.sp,
@@ -152,39 +178,51 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 16.h),
+            // Row(
+            //   children: [
+            //     HomeCart(
+            //       imagePath: 'assets/images/quran.png',
+            //       title: "قراءة القران ",
+            //       details: "متابعة الورد اليومي ",
+            //     ),
+            //     SizedBox(width: 16.w),
+            //     HomeCart(
+            //       imagePath: 'assets/images/sound.png',
+            //       title: "تلاوات صوتية ",
+            //       details: "بأصوات مشاهير القراء ",
+            //     ),
+            //   ],
+            // ),
+            // SizedBox(height: 16.h),
             Row(
               children: [
-                HomeCart(
-                  imagePath: 'assets/images/quran.png',
-                  title: "قراءة القران ",
-                  details: "متابعة الورد اليومي ",
-                ),
-                SizedBox(width: 16.w),
-                HomeCart(
-                  imagePath: 'assets/images/sound.png',
-                  title: "تلاوات صوتية ",
-                  details: "بأصوات مشاهير القراء ",
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            Row(
-              children: [
-                HomeCart(
+                HomeCard(
                   imagePath: 'assets/images/azkar.png',
                   title: "الأذكار اليومية ",
                   details: "حصن المسلم ",
+                  onClick: () {
+                    Navigator.pushNamed(context, '/azkar_screen');
+                  },
                 ),
                 SizedBox(width: 16.w),
-                HomeCart(
+                HomeCard(
                   imagePath: 'assets/images/tasbih.png',
                   title: "المسبحة الالكترونية",
-                  details: "بأصوات مشاهير القراء ",
+                  details: "عداد التسبيح الالكتروني  ",
                   onClick: () {
                     Navigator.pushNamed(context, '/subha_screen');
                   },
                 ),
               ],
+            ),
+
+            SizedBox(height: 16.h,),
+            Text(
+              'ترقبونا في إضافات جديدة على التطبيق , من قراءة القران والاستماع لأشهر القراء , والأدعية اليومية لتصحين نفسك , \n التطبيق رفقيك للجنة ان شاء الله ',
+              style: TextStyle(
+                color: AppColor.whiteColor,
+                fontSize:18.sp
+              ),
             ),
           ],
         ),
