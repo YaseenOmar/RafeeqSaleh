@@ -1220,6 +1220,8 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
+          const _MemorialCard(),
+          const SizedBox(height: 16),
           DropdownButtonFormField<AppThemeMode>(
             initialValue: s.themeMode,
             decoration: const InputDecoration(labelText: 'مظهر التطبيق'),
@@ -1298,6 +1300,76 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MemorialCard extends StatelessWidget {
+  const _MemorialCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      color: colors.primaryContainer.withValues(alpha: 0.55),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: colors.primary.withValues(alpha: 0.16)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        child: Column(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.volunteer_activism_outlined,
+                color: colors.primary,
+                size: 29,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'صدقة جارية',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'هذا التطبيق صدقة جارية عن روح الشهيد',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'عمر حسن زقوت',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'NotoSerif',
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'نسأل الله أن يرحمه ويتقبّله، وأن يجعل أثر هذا العمل نورًا في ميزان حسناته',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(height: 1.6),
+            ),
+          ],
+        ),
       ),
     );
   }
