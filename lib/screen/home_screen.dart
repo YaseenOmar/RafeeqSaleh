@@ -216,13 +216,10 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
 
-            SizedBox(height: 16.h,),
+            SizedBox(height: 16.h),
             Text(
               'ترقبونا في إضافات جديدة على التطبيق , من قراءة القران والاستماع لأشهر القراء , والأدعية اليومية لتصحين نفسك , \n التطبيق رفقيك للجنة ان شاء الله ',
-              style: TextStyle(
-                color: AppColor.whiteColor,
-                fontSize:18.sp
-              ),
+              style: TextStyle(color: AppColor.whiteColor, fontSize: 18.sp),
             ),
           ],
         ),

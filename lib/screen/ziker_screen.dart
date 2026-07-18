@@ -39,9 +39,8 @@ class _ZikerScreenState extends State<ZikerScreen> {
       final removedZiker = currentAzkar.removeAt(index);
       _listKey.currentState!.removeItem(
         index,
-            (context, animation) => _buildItem(removedZiker, animation),
+        (context, animation) => _buildItem(removedZiker, animation),
         duration: const Duration(milliseconds: 300),
-
       );
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) setState(() {});
@@ -69,27 +68,32 @@ class _ZikerScreenState extends State<ZikerScreen> {
         title: Text(widget.title, style: TextStyle(color: AppColor.whiteColor)),
       ),
       backgroundColor: AppColor.primaryColor,
-      body: currentAzkar.isNotEmpty? AnimatedList(
-        key: _listKey,
-        padding: const EdgeInsets.all(8.0),
-        initialItemCount: currentAzkar.length,
-        itemBuilder: (context, index, animation) {
-          return InkWell(
-            onTap: () => _decrementCounter(index),
-            child: _buildItem(currentAzkar[index], animation),
-          );
-        },
-      ): Center(
-        child: Column(
-          children: [
-            Image.asset('assets/images/done.png'),
-            Text('تم الانتهاء من ${widget.title}', style: TextStyle(
-              color: AppColor.whiteColor,
-              fontSize: 24.sp
-            ),),
-          ],
-        ),
-      ),
+      body: currentAzkar.isNotEmpty
+          ? AnimatedList(
+              key: _listKey,
+              padding: const EdgeInsets.all(8.0),
+              initialItemCount: currentAzkar.length,
+              itemBuilder: (context, index, animation) {
+                return InkWell(
+                  onTap: () => _decrementCounter(index),
+                  child: _buildItem(currentAzkar[index], animation),
+                );
+              },
+            )
+          : Center(
+              child: Column(
+                children: [
+                  Image.asset('assets/images/done.png'),
+                  Text(
+                    'تم الانتهاء من ${widget.title}',
+                    style: TextStyle(
+                      color: AppColor.whiteColor,
+                      fontSize: 24.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

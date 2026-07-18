@@ -40,12 +40,20 @@ class HomeCard extends StatelessWidget {
               SizedBox(height: 12.h),
               Text(
                 title,
-                style: TextStyle(color: AppColor.whiteColor, fontSize: 16.sp, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: AppColor.whiteColor,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               SizedBox(height: 8.h),
               Text(
                 details,
-                style: TextStyle(color: AppColor.whiteColor, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: AppColor.whiteColor,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),

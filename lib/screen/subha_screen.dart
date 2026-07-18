@@ -103,7 +103,9 @@ class _SubhaScreenState extends State<SubhaScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0x30dae2fd).withOpacity(0.4),
+                                  color: const Color(
+                                    0x30dae2fd,
+                                  ).withValues(alpha: 0.4),
                                   blurRadius: 10,
                                   spreadRadius: 1,
                                 ),
@@ -220,8 +222,6 @@ class _SubhaScreenState extends State<SubhaScreen> {
                           _buildZikrButton('سبحان الله', 0),
                           const SizedBox(width: 12),
                           _buildZikrButton('الحمد لله', 1),
-
-
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -230,7 +230,6 @@ class _SubhaScreenState extends State<SubhaScreen> {
                           _buildZikrButton('الله أكبر', 2),
                           const SizedBox(width: 12),
                           _buildZikrButton('لا اله الا الله ', 3),
-
                         ],
                       ),
                     ],
@@ -238,7 +237,6 @@ class _SubhaScreenState extends State<SubhaScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                
               ],
             ),
           ],

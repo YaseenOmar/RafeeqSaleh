@@ -1,50 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:rafeeq_saleh/data/azkar_lists.dart';
-import 'package:rafeeq_saleh/screen/azkar_screen.dart';
-import 'package:rafeeq_saleh/screen/subha_screen.dart';
-import 'package:rafeeq_saleh/screen/ziker_screen.dart';
-import 'screen/home_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'data/local_store.dart';
+import 'domain/app_models.dart';
+import 'presentation/app_controller.dart';
+import 'presentation/app_shell.dart';
 
-void main() async{
-  runApp(const MyApp());
-  await initializeDateFormatting('ar');
-
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final preferences = await SharedPreferences.getInstance();
+  final controller = AppController(
+    AppRepository(PreferencesLocalStore(preferences)),
+  );
+  await controller.load();
+  runApp(RafeeqApp(controller: controller));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
+class RafeeqApp extends StatelessWidget {
+  const RafeeqApp({super.key, required this.controller});
+  final AppController controller;
   @override
-  Widget build(BuildContext context) {
-    final AzkarLists azkarLists = AzkarLists();
-    return ScreenUtilInit(
-      designSize: const Size(390, 844),
-      child: MaterialApp(
+  Widget build(BuildContext context) => AppScope(
+    controller: controller,
+    child: AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) => MaterialApp(
+        title: 'الرفيق الصالح',
         debugShowCheckedModeBanner: false,
         locale: const Locale('ar'),
-
-        builder: (context, child) {
-          return Directionality(
-            textDirection: TextDirection.rtl,
-            child: child!,
-          );
+        supportedLocales: const [Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        themeMode: switch (controller.settings.themeMode) {
+          AppThemeMode.light => ThemeMode.light,
+          AppThemeMode.dark => ThemeMode.dark,
+          _ => ThemeMode.system,
         },
-
-        theme: ThemeData(
-          fontFamily: 'NotoSerif'
-        ),
-        initialRoute: '/home_screen',
-        routes: {
-          "/home_screen":(context) => const HomeScreen(),
-          "/subha_screen":(context) => const SubhaScreen(),
-          "/azkar_screen":(context) => const AzkarScreen(),
-          "/ziker_screen":(context) => const ZikerScreen(azkar: [], title: '',),
-
-        },
+        theme: _theme(Brightness.light),
+        darkTheme: _theme(Brightness.dark),
+        home: const AppShell(),
       ),
+    ),
+  );
+  ThemeData _theme(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    const seed = Color(0xff176b55);
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: seed,
+        brightness: brightness,
+      ),
+      fontFamily: 'NotoSerif',
+      scaffoldBackgroundColor: dark
+          ? const Color(0xff071f19)
+          : const Color(0xfff6faf7),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: dark ? const Color(0xff10372d) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+        ),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(height: 72),
     );
   }
 }

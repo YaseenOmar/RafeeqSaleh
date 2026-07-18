@@ -1,16 +1,61 @@
-# rafeeq_saleh
+# الرفيق الصالح
 
-Rafeeq Saleh – A spiritual companion app providing authentic daily Athkar and personalized favorites.
+تطبيق Flutter إسلامي عربي يعمل دون حساب أو اتصال بالإنترنت في ميزاته الأساسية. يوفّر الأذكار، قراءة القرآن، حفظ التقدم والعلامات المرجعية، وعداد التسبيح ضمن واجهة RTL فاتحة وداكنة.
 
-## Getting Started
+## الميزات
 
-This project is a starting point for a Flutter application.
+- شاشة رئيسية متجاوبة مع اختصارات وتابع القراءة.
+- ست فئات للأذكار والأدعية مع عداد وتقدم محلي ونسخ ومشاركة.
+- قائمة 114 سورة، بحث عربي، قراءة كسولة للآيات، تكبير الخط، والتنقل بين السور.
+- حفظ آخر سورة وآية وموضع تمرير وسجل آخر عشرة مواضع مع debounce.
+- علامات مرجعية بلا تكرار وفتح مباشر وحذف.
+- مسبحة محفوظة، أهداف 33 و100 أو هدف مخصص، تقدم واهتزاز اختياري.
+- إعدادات للمظهر والخط والاهتزاز والحفظ التلقائي وإعادة الضبط.
+- لا تسجيل دخول، ولا Analytics، ولا صلاحيات أو خدمات شبكة غير ضرورية.
 
-A few resources to get you started if this is your first Flutter project:
+## التشغيل
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+يتطلب Flutter المتوافق مع Dart `^3.10.4`:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+flutter run
+```
+
+## التحقق والاختبارات
+
+```bash
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
+
+تتحقق الاختبارات من القيم الافتراضية، تقدم القرآن وسجله، العلامات المرجعية ومنع التكرار، تقدم الأذكار، الإعدادات، المسبحة، ومن اكتمال 114 سورة و6236 آية.
+
+## بناء Release
+
+```bash
+flutter build apk --release
+# صيغة Google Play المفضلة بعد إعداد توقيع المالك:
+flutter build appbundle --release
+```
+
+يجب على مالك التطبيق إعداد keystore خاص وآمن قبل الرفع إلى Google Play؛ لا ينبغي حفظ ملف المفتاح أو كلمات مروره في Git.
+
+## البنية
+
+- `lib/domain`: نماذج الإعدادات وتقدم القراءة والعلامات.
+- `lib/data`: مستودع التخزين المحلي وبيانات الأذكار.
+- `lib/presentation`: متحكم حالة مركزي وواجهات التطبيق والتنقل.
+- `lib/screen` و`lib/widget`: الواجهات الأصلية المحتفظ بها كمرجع أثناء الانتقال التدريجي.
+- `test`: اختبارات المنطق والبيانات باستخدام fake يدوي دون Mockito.
+
+## مصادر البيانات والقرارات
+
+- نص القرآن يأتي من حزمة Dart `quran` إصدار `1.4.1`، وهو مضمّن محليًا ويُقرأ دون شبكة. يوجد اختبار يمر على كل آية ويثبت العدد القياسي 6236 آية.
+- الأذكار الأساسية هي المحتوى الموجود مسبقًا في المشروع، مع إضافة أذكار استيقاظ وأدعية قرآنية محدودة. يجب أن تراجع جهة شرعية النصوص والمصادر قبل النشر العام، خصوصًا النصوص القديمة المختصرة بعلامة الحذف.
+- التخزين يستخدم `shared_preferences` مع JSON ذي مفاتيح ذات إصدارات، ومعالجة بيانات تالفة بقيم افتراضية آمنة.
+- إدارة الحالة تستخدم `ChangeNotifier` و`InheritedNotifier` لتقليل الاعتمادات وتناسب حجم التطبيق.
+- الإشعارات مؤجلة عمدًا؛ لم تُطلب صلاحية إشعارات ولم تُضف خدمة خلفية في النسخة الأولى.
+
+راجع [PROJECT_AUDIT.md](PROJECT_AUDIT.md) و[IMPLEMENTATION_REPORT.md](IMPLEMENTATION_REPORT.md) للتفاصيل.

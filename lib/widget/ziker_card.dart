@@ -29,14 +29,20 @@ class ZikerCard extends StatelessWidget {
                 children: [
                   Text(
                     ziker.ziker,
-                    style: TextStyle(color: AppColor.goldColor, fontSize: 16.sp),
+                    style: TextStyle(
+                      color: AppColor.goldColor,
+                      fontSize: 16.sp,
+                    ),
                     softWrap: true,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     ziker.description,
-                    style: TextStyle(color: AppColor.whiteColor, fontSize: 12.sp),
+                    style: TextStyle(
+                      color: AppColor.whiteColor,
+                      fontSize: 12.sp,
+                    ),
                     softWrap: true,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -44,7 +50,7 @@ class ZikerCard extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(width: 8.w,),
+            SizedBox(width: 8.w),
             Container(
               width: 56.w,
               height: 56.h,
@@ -55,9 +61,7 @@ class ZikerCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   ziker.numOfCount.toString(),
-                  style: TextStyle(color: AppColor.goldColor,
-                  fontSize: 24.sp),
-
+                  style: TextStyle(color: AppColor.goldColor, fontSize: 24.sp),
                 ),
               ),
             ),

@@ -45,7 +45,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
                         builder: (context) => ZikerScreen(
                           azkar: azkarLists.morningAzkar,
                           title: "أذكار الصباح",
-
                         ),
                       ),
                     );
@@ -64,7 +63,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
                         builder: (context) => ZikerScreen(
                           azkar: azkarLists.eveningAzkar,
                           title: "أذكار المساء",
-
                         ),
                       ),
                     );
@@ -72,7 +70,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 16.h,),
+            SizedBox(height: 16.h),
             Row(
               children: [
                 HomeCard(
@@ -87,7 +85,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
                         builder: (context) => ZikerScreen(
                           azkar: azkarLists.sleepAzkar,
                           title: "أذكار النوم",
-
                         ),
                       ),
                     );
@@ -106,7 +103,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
                         builder: (context) => ZikerScreen(
                           azkar: azkarLists.afterPrayerAzkar,
                           title: "أذكار بعد الصلاة",
-
                         ),
                       ),
                     );
