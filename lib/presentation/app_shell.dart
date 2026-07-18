@@ -16,43 +16,87 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int index = 0;
+  DateTime? _lastBackPress;
+
+  void _selectPage(int value) {
+    setState(() {
+      index = value;
+      _lastBackPress = null;
+    });
+  }
+
+  void _handleBack(bool didPop, Object? result) {
+    if (didPop) return;
+
+    if (index != 0) {
+      _selectPage(0);
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastBackPress != null &&
+        now.difference(_lastBackPress!) < const Duration(seconds: 2)) {
+      SystemNavigator.pop();
+      return;
+    }
+
+    _lastBackPress = now;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'اضغط رجوع مرة أخرى للخروج',
+            textAlign: TextAlign.center,
+          ),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(onNavigate: (i) => setState(() => index = i)),
+      HomePage(onNavigate: _selectPage),
       const AthkarPage(),
       const SurahListPage(),
       const FavoritesPage(),
       const SettingsPage(),
     ];
-    return Scaffold(
-      body: IndexedStack(index: index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => setState(() => index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'الرئيسية',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            label: 'الأذكار',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            label: 'القرآن',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bookmark_outline),
-            label: 'المفضلة',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            label: 'الإعدادات',
-          ),
-        ],
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: _handleBack,
+      child: Scaffold(
+        body: IndexedStack(index: index, children: pages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: index,
+          onDestinationSelected: _selectPage,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'الرئيسية',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.auto_awesome_outlined),
+              label: 'الأذكار',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.menu_book_outlined),
+              label: 'القرآن',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bookmark_outline),
+              label: 'المفضلة',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              label: 'الإعدادات',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -67,54 +111,85 @@ class HomePage extends StatelessWidget {
     return SafeArea(
       child: CustomScrollView(
         slivers: [
-          const SliverAppBar(floating: true, title: Text('الرفيق الصالح')),
+          const SliverAppBar(
+            floating: true,
+            title: Text(
+              'الرفيق الصالح',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList.list(
               children: [
-                Text(
-                  'السلام عليكم ورحمة الله',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 800),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(0, 30 * (1 - value)),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'السلام عليكم ورحمة الله',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text('رفيقك اليومي للذكر وقراءة القرآن'),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text('رفيقك اليومي للذكر وقراءة القرآن'),
-                const SizedBox(height: 18),
+                const SizedBox(height: 24),
                 if (p != null)
-                  Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.play_arrow),
+                  _HomeCard(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SurahReaderPage(
+                          surah: p.surah,
+                          initialAyah: p.ayah,
+                        ),
                       ),
-                      title: const Text('تابع القراءة'),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: Colors.white,
+                        ),
+                      ),
+                      title: const Text(
+                        'تابع القراءة',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Text(
                         '${quran.getSurahNameArabic(p.surah)} • الآية ${p.ayah}',
                       ),
                       trailing: const Icon(Icons.chevron_left),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SurahReaderPage(
-                            surah: p.surah,
-                            initialAyah: p.ayah,
-                          ),
-                        ),
-                      ),
                     ),
                   ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 1.25,
+                  childAspectRatio: 1.2,
                   children: [
                     _Feature(
                       icon: Icons.wb_sunny_outlined,
                       title: 'أذكار الصباح',
+                      color: Colors.orange,
                       onTap: () => _openAthkar(
                         context,
                         'morning',
@@ -125,6 +200,7 @@ class HomePage extends StatelessWidget {
                     _Feature(
                       icon: Icons.nightlight_outlined,
                       title: 'أذكار المساء',
+                      color: Colors.indigo,
                       onTap: () => _openAthkar(
                         context,
                         'evening',
@@ -134,12 +210,14 @@ class HomePage extends StatelessWidget {
                     ),
                     _Feature(
                       icon: Icons.menu_book,
-                      title: 'قراءة القرآن',
+                      title: 'القرآن الكريم',
+                      color: Colors.teal,
                       onTap: () => onNavigate(2),
                     ),
                     _Feature(
                       icon: Icons.touch_app_outlined,
-                      title: 'عداد التسبيح',
+                      title: 'مسبحة الأذكار',
+                      color: Colors.brown,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const TasbihPage()),
@@ -147,12 +225,21 @@ class HomePage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                const Card(
+                const SizedBox(height: 20),
+                const _HomeCard(
                   child: Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text(
-                      'جميع بياناتك، بما فيها تقدم القراءة والمفضلة، محفوظة محليًا على جهازك.',
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 20, color: Colors.grey),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'جميع بياناتك محفوظة محليًا على جهازك لخصوصية تامة.',
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -165,31 +252,57 @@ class HomePage extends StatelessWidget {
   }
 }
 
+class _HomeCard extends StatelessWidget {
+  const _HomeCard({required this.child, this.onTap});
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: Theme.of(context).dividerColor.withOpacity(0.05),
+        ),
+      ),
+      child: InkWell(onTap: onTap, child: child),
+    );
+  }
+}
+
 class _Feature extends StatelessWidget {
   const _Feature({
     required this.icon,
     required this.title,
     required this.onTap,
+    required this.color,
   });
   final IconData icon;
   final String title;
   final VoidCallback onTap;
+  final Color color;
   @override
   Widget build(BuildContext context) => Card(
+    elevation: 0,
+    color: color.withOpacity(0.1),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     child: InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 38, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 10),
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
           ],
         ),
@@ -244,7 +357,7 @@ class AthkarPage extends StatelessWidget {
   }
 }
 
-class AthkarReaderPage extends StatelessWidget {
+class AthkarReaderPage extends StatefulWidget {
   const AthkarReaderPage({
     super.key,
     required this.category,
@@ -253,24 +366,92 @@ class AthkarReaderPage extends StatelessWidget {
   });
   final String category, title;
   final List<Ziker> items;
+
+  @override
+  State<AthkarReaderPage> createState() => _AthkarReaderPageState();
+}
+
+class _AthkarReaderPageState extends State<AthkarReaderPage> {
+  GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  late List<int> _visibleIndices;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    final c = AppScope.of(context);
+    _visibleIndices = [
+      for (var i = 0; i < widget.items.length; i++)
+        if (c.remainingFor(
+              '${widget.category}:$i',
+              widget.items[i].numOfCount,
+            ) >
+            0)
+          i,
+    ];
+    _initialized = true;
+  }
+
+  void _decrement(AppController c, int itemIndex) {
+    final z = widget.items[itemIndex];
+    final id = '${widget.category}:$itemIndex';
+    final remaining = c.remainingFor(id, z.numOfCount);
+
+    if (remaining > 1) {
+      c.decrementAthkar(id, z.numOfCount);
+      return;
+    }
+
+    final position = _visibleIndices.indexOf(itemIndex);
+    if (position < 0) return;
+    _visibleIndices.removeAt(position);
+    _listKey.currentState?.removeItem(
+      position,
+      (context, animation) => SizeTransition(
+        sizeFactor: CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        ),
+        child: FadeTransition(
+          opacity: animation,
+          child: _AthkarCard(ziker: z, remaining: 0, onDecrement: null),
+        ),
+      ),
+      duration: const Duration(milliseconds: 500),
+    );
+    c.decrementAthkar(id, z.numOfCount);
+  }
+
+  Future<void> _reset(AppController c) async {
+    await c.resetAthkar();
+    if (!mounted) return;
+    setState(() {
+      _visibleIndices = List.generate(widget.items.length, (i) => i);
+      _listKey = GlobalKey<AnimatedListState>();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = AppScope.of(context);
     final done = [
-      for (var i = 0; i < items.length; i++)
-        if (c.remainingFor('$category:$i', items[i].numOfCount) == 0) i,
+      for (var i = 0; i < widget.items.length; i++)
+        if (c.remainingFor(
+              '${widget.category}:$i',
+              widget.items[i].numOfCount,
+            ) ==
+            0)
+          i,
     ].length;
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(widget.title),
         actions: [
           IconButton(
             tooltip: 'إعادة الضبط',
-            onPressed: () => _confirm(
-              context,
-              'إعادة ضبط تقدم الأذكار؟',
-              () => c.resetAthkar(),
-            ),
+            onPressed: () =>
+                _confirm(context, 'إعادة ضبط تقدم الأذكار؟', () => _reset(c)),
             icon: const Icon(Icons.restart_alt),
           ),
         ],
@@ -278,75 +459,248 @@ class AthkarReaderPage extends StatelessWidget {
       body: Column(
         children: [
           LinearProgressIndicator(
-            value: items.isEmpty ? 0 : done / items.length,
+            value: widget.items.isEmpty ? 0 : done / widget.items.length,
           ),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: items.length,
-              itemBuilder: (_, i) {
-                final z = items[i],
-                    remaining = c.remainingFor('$category:$i', z.numOfCount);
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          z.ziker,
-                          style: TextStyle(
-                            fontSize: c.settings.athkarFontSize,
-                            height: 1.8,
-                          ),
+            child: Stack(
+              children: [
+                AnimatedList(
+                  key: _listKey,
+                  padding: const EdgeInsets.all(12),
+                  initialItemCount: _visibleIndices.length,
+                  itemBuilder: (_, position, animation) {
+                    final itemIndex = _visibleIndices[position];
+                    final z = widget.items[itemIndex];
+                    final remaining = c.remainingFor(
+                      '${widget.category}:$itemIndex',
+                      z.numOfCount,
+                    );
+                    return SizeTransition(
+                      sizeFactor: animation,
+                      child: FadeTransition(
+                        opacity: animation,
+                        child: _AthkarCard(
+                          ziker: z,
+                          remaining: remaining,
+                          onDecrement: () => _decrement(c, itemIndex),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          z.description,
-                          style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    );
+                  },
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 600),
+                      switchInCurve: Curves.easeOutBack,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: ScaleTransition(
+                          scale: Tween(
+                            begin: 0.88,
+                            end: 1.0,
+                          ).animate(animation),
+                          child: child,
                         ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            FilledButton.tonal(
-                              onPressed: remaining == 0
-                                  ? null
-                                  : () => c.decrementAthkar(
-                                      '$category:$i',
-                                      z.numOfCount,
-                                    ),
-                              child: Text(
-                                remaining == 0 ? 'تم' : 'المتبقي: $remaining',
-                              ),
-                            ),
-                            Wrap(
-                              children: [
-                                IconButton(
-                                  tooltip: 'نسخ',
-                                  onPressed: () => _copy(context, z.ziker),
-                                  icon: const Icon(Icons.copy_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: 'مشاركة',
-                                  onPressed: () => SharePlus.instance.share(
-                                    ShareParams(text: z.ziker),
-                                  ),
-                                  icon: const Icon(Icons.share_outlined),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
+                      child: _visibleIndices.isEmpty
+                          ? const _AthkarCompletion(key: ValueKey('completed'))
+                          : const SizedBox.shrink(key: ValueKey('reading')),
                     ),
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AthkarCompletion extends StatelessWidget {
+  const _AthkarCompletion({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.primary.withValues(alpha: 0.16),
+                    blurRadius: 24,
+                    spreadRadius: 3,
+                  ),
+                ],
+              ),
+              child: Icon(Icons.check_rounded, size: 54, color: colors.primary),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'أتممت أذكارك',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colors.primary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'تقبّل الله منك، وكتب لك الأجر والطمأنينة',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(height: 1.6),
+            ),
+            const SizedBox(height: 16),
+            Icon(Icons.auto_awesome, size: 20, color: colors.tertiary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AthkarCard extends StatelessWidget {
+  const _AthkarCard({
+    required this.ziker,
+    required this.remaining,
+    required this.onDecrement,
+  });
+
+  final Ziker ziker;
+  final int remaining;
+  final VoidCallback? onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final virtue = ziker.virtue;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onDecrement,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                ziker.ziker,
+                style: TextStyle(
+                  fontSize: AppScope.of(context).settings.athkarFontSize,
+                  height: 1.8,
+                ),
+              ),
+              if (virtue == null || virtue != ziker.description) ...[
+                const SizedBox(height: 8),
+                Text(
+                  ziker.description,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              if (virtue != null) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.tertiaryContainer.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.tertiary.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 19,
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'فضل الذكر',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.tertiary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(virtue, style: const TextStyle(height: 1.5)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      remaining == 0 ? 'تم' : 'المتبقي: $remaining',
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSecondaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Wrap(
+                    children: [
+                      IconButton(
+                        tooltip: 'نسخ',
+                        onPressed: () => _copy(context, ziker.ziker),
+                        icon: const Icon(Icons.copy_outlined),
+                      ),
+                      IconButton(
+                        tooltip: 'مشاركة',
+                        onPressed: () => SharePlus.instance.share(
+                          ShareParams(text: ziker.ziker),
+                        ),
+                        icon: const Icon(Icons.share_outlined),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -366,42 +720,103 @@ class _SurahListPageState extends State<SurahListPage> {
     final surahs = [
       for (int i = 1; i <= 114; i++) i,
     ].where((i) => quran.getSurahNameArabic(i).contains(query)).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('القرآن الكريم')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              onChanged: (value) => setState(() => query = value.trim()),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'ابحث باسم السورة',
-                border: OutlineInputBorder(),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            floating: true,
+            pinned: true,
+            title: const Text('القرآن الكريم'),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(70),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: TextField(
+                  onChanged: (value) => setState(() => query = value.trim()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: 'ابحث باسم السورة',
+                    filled: true,
+                    fillColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceVariant.withOpacity(0.5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                ),
               ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: surahs.length,
-              itemBuilder: (context, index) {
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
                 final surah = surahs[index];
                 final makkah = quran.getPlaceOfRevelation(surah) == 'Makkah';
-                return ListTile(
-                  leading: CircleAvatar(child: Text('$surah')),
-                  title: Text(quran.getSurahNameArabic(surah)),
-                  subtitle: Text(
-                    '${quran.getVerseCount(surah)} آية • ${makkah ? 'مكية' : 'مدنية'}',
-                  ),
-                  trailing: const Icon(Icons.chevron_left),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SurahReaderPage(surah: surah),
+
+                return TweenAnimationBuilder<double>(
+                  duration: Duration(milliseconds: 300 + (index % 10 * 50)),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(0, 20 * (1 - value)),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: Container(
+                        width: 45,
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$surah',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        quran.getSurahNameArabic(surah),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${quran.getVerseCount(surah)} آية • ${makkah ? 'مكية' : 'مدنية'}',
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_left,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.5),
+                      ),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SurahReaderPage(surah: surah),
+                        ),
+                      ),
                     ),
                   ),
                 );
-              },
+              }, childCount: surahs.length),
             ),
           ),
         ],
@@ -418,21 +833,15 @@ class SurahReaderPage extends StatefulWidget {
 }
 
 class _SurahReaderPageState extends State<SurahReaderPage> {
-  late final ScrollController scroll;
+  late final PageController pages;
   late AppController appController;
-  Timer? debounce;
-  int visible = 1;
+  late int currentPage;
+
   @override
   void initState() {
     super.initState();
-    visible = widget.initialAyah;
-    scroll = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.initialAyah > 1) {
-        scroll.jumpTo((widget.initialAyah - 1) * 115.0);
-      }
-    });
-    scroll.addListener(_onScroll);
+    currentPage = quran.getPageNumber(widget.surah, widget.initialAyah);
+    pages = PageController(initialPage: currentPage - 1);
   }
 
   @override
@@ -443,36 +852,28 @@ class _SurahReaderPageState extends State<SurahReaderPage> {
 
   @override
   void dispose() {
-    debounce?.cancel();
     _save();
-    scroll.dispose();
+    pages.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    visible =
-        (scroll.offset / 115).floor().clamp(
-          0,
-          quran.getVerseCount(widget.surah) - 1,
-        ) +
-        1;
-    debounce?.cancel();
-    debounce = Timer(const Duration(milliseconds: 650), _save);
+  void _save() {
+    final first = quran.getPageData(currentPage).first;
+    appController.saveReading(first['surah'] as int, first['start'] as int);
   }
 
-  void _save() => appController.saveReading(
-    widget.surah,
-    visible,
-    offset: scroll.hasClients ? scroll.offset : 0,
-  );
   @override
   Widget build(BuildContext context) {
-    final c = AppScope.of(context), count = quran.getVerseCount(widget.surah);
+    final c = AppScope.of(context);
+
     return Scaffold(
+      backgroundColor: const Color(0xffeee8da),
       appBar: AppBar(
-        title: Text(quran.getSurahNameArabic(widget.surah)),
+        title: Text('صفحة $currentPage'),
+        centerTitle: true,
         actions: [
           IconButton(
+            tooltip: 'تصغير الخط',
             onPressed: () => c.updateSettings(
               c.settings.copyWith(
                 quranFontSize: (c.settings.quranFontSize - 2).clamp(18, 40),
@@ -481,6 +882,7 @@ class _SurahReaderPageState extends State<SurahReaderPage> {
             icon: const Icon(Icons.text_decrease),
           ),
           IconButton(
+            tooltip: 'تكبير الخط',
             onPressed: () => c.updateSettings(
               c.settings.copyWith(
                 quranFontSize: (c.settings.quranFontSize + 2).clamp(18, 40),
@@ -490,97 +892,198 @@ class _SurahReaderPageState extends State<SurahReaderPage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        controller: scroll,
-        padding: const EdgeInsets.all(12),
-        itemCount: count,
-        itemBuilder: (_, x) {
-          final ayah = x + 1,
-              text = quran.getVerse(widget.surah, ayah, verseEndSymbol: true),
-              marked = c.isBookmarked(widget.surah, ayah);
-          return Card(
-            color: ayah == widget.initialAyah
-                ? Theme.of(context).colorScheme.secondaryContainer
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    text,
-                    textAlign: TextAlign.justify,
-                    style: TextStyle(
-                      fontSize: c.settings.quranFontSize,
-                      height: 2,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Text('الآية $ayah'),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () =>
-                            _copy(context, quran.getVerse(widget.surah, ayah)),
-                        icon: const Icon(Icons.copy_outlined),
-                      ),
-                      IconButton(
-                        onPressed: () => SharePlus.instance.share(
-                          ShareParams(
-                            text:
-                                '${quran.getVerse(widget.surah, ayah)}\n[${quran.getSurahNameArabic(widget.surah)}: $ayah]',
-                          ),
-                        ),
-                        icon: const Icon(Icons.share_outlined),
-                      ),
-                      IconButton(
-                        onPressed: () => c.toggleBookmark(
-                          QuranBookmark(
-                            surah: widget.surah,
-                            ayah: ayah,
-                            preview: quran.getVerse(widget.surah, ayah),
-                            createdAt: DateTime.now(),
-                          ),
-                        ),
-                        icon: Icon(
-                          marked ? Icons.bookmark : Icons.bookmark_outline,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            TextButton.icon(
-              onPressed: widget.surah > 1
-                  ? () => _replace(widget.surah - 1)
-                  : null,
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('السابقة'),
-            ),
-            TextButton.icon(
-              onPressed: widget.surah < 114
-                  ? () => _replace(widget.surah + 1)
-                  : null,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('التالية'),
-            ),
-          ],
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: PageView.builder(
+          controller: pages,
+          itemCount: quran.totalPagesCount,
+          onPageChanged: (index) {
+            setState(() => currentPage = index + 1);
+            _save();
+          },
+          itemBuilder: (_, index) => _MushafPage(
+            pageNumber: index + 1,
+            fontSize: c.settings.quranFontSize,
+            initialSurah: widget.surah,
+            initialAyah: widget.initialAyah,
+          ),
         ),
       ),
     );
   }
+}
 
-  void _replace(int s) => Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => SurahReaderPage(surah: s)),
+class _MushafPage extends StatelessWidget {
+  const _MushafPage({
+    required this.pageNumber,
+    required this.fontSize,
+    required this.initialSurah,
+    required this.initialAyah,
+  });
+  final int pageNumber, initialSurah, initialAyah;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = quran.getPageData(pageNumber);
+    final first = sections.first;
+    final surah = first['surah'] as int;
+    final juz = quran.getJuzNumber(surah, first['start'] as int);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xfffffbef),
+          border: Border.all(color: const Color(0xffad9363), width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x26000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Text('الجزء $juz'),
+                  const Spacer(),
+                  Text('سورة ${quran.getSurahNameArabic(surah)}'),
+                ],
+              ),
+              const Divider(color: Color(0xffad9363), height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final section in sections)
+                        _MushafSection(
+                          surah: section['surah'] as int,
+                          start: section['start'] as int,
+                          end: section['end'] as int,
+                          fontSize: fontSize,
+                          initialSurah: initialSurah,
+                          initialAyah: initialAyah,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(color: Color(0xffad9363), height: 12),
+              Text(
+                '$pageNumber',
+                style: const TextStyle(color: Color(0xff756b57), fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MushafSection extends StatelessWidget {
+  const _MushafSection({
+    required this.surah,
+    required this.start,
+    required this.end,
+    required this.fontSize,
+    required this.initialSurah,
+    required this.initialAyah,
+  });
+
+  final int surah, start, end, initialSurah, initialAyah;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final startsSurah = start == 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (startsSurah) _SurahBanner(surah: surah),
+        if (startsSurah && surah != 1 && surah != 9)
+          const Padding(
+            padding: EdgeInsets.only(top: 3, bottom: 7),
+            child: Text(
+              quran.basmala,
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: TextStyle(
+                color: Color(0xff19160f),
+                fontSize: 21,
+                height: 1.5,
+                fontFamily: 'NotoSerif',
+              ),
+            ),
+          ),
+        Text.rich(
+          TextSpan(
+            children: [
+              for (var ayah = start; ayah <= end; ayah++)
+                TextSpan(
+                  text: '${_verseText(surah, ayah)} ',
+                  style: surah == initialSurah && ayah == initialAyah
+                      ? const TextStyle(backgroundColor: Color(0x33c6a15b))
+                      : null,
+                ),
+            ],
+          ),
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            color: const Color(0xff19160f),
+            fontSize: fontSize,
+            height: 1.9,
+            fontFamily: 'NotoSerif',
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _verseText(int surah, int ayah) {
+    var text = quran.getVerse(surah, ayah);
+    if (ayah == 1 && surah != 1 && surah != 9) {
+      const basmalaEnd = 'الرَّحِيمِ';
+      final end = text.indexOf(basmalaEnd);
+      if (end >= 0) {
+        text = text.substring(end + basmalaEnd.length).trimLeft();
+      }
+    }
+    return '$text${quran.getVerseEndSymbol(ayah)}';
+  }
+}
+
+class _SurahBanner extends StatelessWidget {
+  const _SurahBanner({required this.surah});
+  final int surah;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: MediaQuery.sizeOf(context).width - 54,
+    margin: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    decoration: BoxDecoration(
+      color: const Color(0xffeee4cb),
+      border: Border.all(color: const Color(0xffad9363)),
+      borderRadius: BorderRadius.circular(3),
+    ),
+    child: Text(
+      'سُورَةُ ${quran.getSurahNameArabic(surah)}',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Color(0xff4f4027),
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        fontFamily: 'NotoSerif',
+      ),
+    ),
   );
 }
 
