@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:share_plus/share_plus.dart';
+import 'package:adhan/adhan.dart';
+import 'package:intl/intl.dart' as intl;
 import '../data/azkar_lists.dart';
 import '../domain/app_models.dart';
 import '../model/ziker.dart';
@@ -111,11 +114,42 @@ class HomePage extends StatelessWidget {
     return SafeArea(
       child: CustomScrollView(
         slivers: [
-          const SliverAppBar(
+          SliverAppBar(
             floating: true,
-            title: Text(
-              'الرفيق الصالح',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            expandedHeight: 80,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Center(
+                    child: Text(
+                      'الرفيق الصالح',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           SliverPadding(
@@ -126,26 +160,40 @@ class HomePage extends StatelessWidget {
                   duration: const Duration(milliseconds: 800),
                   tween: Tween(begin: 0.0, end: 1.0),
                   builder: (context, value, child) {
+                    final dailyZiker = AzkarLists().getDailyZiker();
                     return Opacity(
                       opacity: value,
                       child: Transform.translate(
                         offset: Offset(0, 30 * (1 - value)),
-                        child: child,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dailyZiker.ziker,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.4,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              dailyZiker.virtue ?? dailyZiker.description,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'السلام عليكم ورحمة الله',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text('رفيقك اليومي للذكر وقراءة القرآن'),
-                    ],
-                  ),
+                  child: const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 20),
+                _PrayerCard(
+                  prayerTimes: c.prayerTimes,
+                  onLocationTap: () => _showLocationPicker(context, c),
                 ),
                 const SizedBox(height: 24),
                 if (p != null)
@@ -306,6 +354,412 @@ class _Feature extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+class _PrayerCard extends StatelessWidget {
+  const _PrayerCard({this.prayerTimes, required this.onLocationTap});
+  final PrayerTimes? prayerTimes;
+  final VoidCallback onLocationTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = AppScope.of(context).settings;
+    if (prayerTimes == null) {
+      return _HomeCard(
+        onTap: onLocationTap,
+        child: const Padding(
+          padding: EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(Icons.location_off_outlined, color: Colors.orange),
+              SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'مواقيت الصلاة غير مفعلة',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('اضغط لتحديد الموقع يدوياً أو تفعيل GPS'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final next = prayerTimes!.nextPrayer();
+    final actualNext = next == Prayer.none ? Prayer.fajr : next;
+    final nextTime = prayerTimes!.timeForPrayer(actualNext)!;
+    final diff = nextTime.difference(DateTime.now());
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+
+    String remaining = '';
+    if (hours > 0) remaining += '$hours ساعة و ';
+    remaining += '$minutes دقيقة';
+
+    return _HomeCard(
+      onTap: () => _showMonthlyPrayers(context, prayerTimes!),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: Theme.of(context).brightness == Brightness.light
+                ? [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.03),
+                  ]
+                : [
+                    Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+                    Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
+                  ],
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 14, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            settings.locationName ?? 'غير محدد',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'الصلاة القادمة: ${_prayerName(actualNext)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'متبقي $remaining',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      intl.DateFormat.jm('ar').format(nextTime),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: onLocationTap,
+                      child: Text(
+                        'تغيير الموقع',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          decoration: TextDecoration.underline,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _SmallPrayer(name: 'فجر', time: prayerTimes!.fajr, isNext: actualNext == Prayer.fajr),
+                  _SmallPrayer(name: 'ظهر', time: prayerTimes!.dhuhr, isNext: actualNext == Prayer.dhuhr),
+                  _SmallPrayer(name: 'عصر', time: prayerTimes!.asr, isNext: actualNext == Prayer.asr),
+                  _SmallPrayer(name: 'مغرب', time: prayerTimes!.maghrib, isNext: actualNext == Prayer.maghrib),
+                  _SmallPrayer(name: 'عشاء', time: prayerTimes!.isha, isNext: actualNext == Prayer.isha),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _prayerName(Prayer prayer) {
+    switch (prayer) {
+      case Prayer.fajr: return 'الفجر';
+      case Prayer.sunrise: return 'الشروق';
+      case Prayer.dhuhr: return 'الظهر';
+      case Prayer.asr: return 'العصر';
+      case Prayer.maghrib: return 'المغرب';
+      case Prayer.isha: return 'العشاء';
+      default: return '';
+    }
+  }
+}
+
+class _SmallPrayer extends StatelessWidget {
+  const _SmallPrayer({required this.name, required this.time, required this.isNext});
+  final String name;
+  final DateTime time;
+  final bool isNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        children: [
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+              color: isNext ? Theme.of(context).colorScheme.primary : Colors.grey,
+            ),
+          ),
+          Text(
+            intl.DateFormat.jm('ar').format(time).replaceAll('م', '').replaceAll('ص', ''),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isNext ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showMonthlyPrayers(BuildContext context, PrayerTimes current) {
+  final now = DateTime.now();
+  final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+  final hijri = HijriCalendar.now();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_month_outlined),
+                const SizedBox(width: 12),
+                Text(
+                  'مواقيت شهر ${hijri.getLongMonthName()}',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: daysInMonth,
+              itemBuilder: (context, index) {
+                final day = index + 1;
+                final date = DateTime(now.year, now.month, day);
+                final coords = Coordinates(
+                  AppScope.of(context).settings.latitude ?? 0,
+                  AppScope.of(context).settings.longitude ?? 0,
+                );
+                
+                // Consistency in calculation method
+                CalculationParameters params;
+                switch (AppScope.of(context).settings.calculationMethodIndex) {
+                  case 0: params = CalculationMethod.muslim_world_league.getParameters(); break;
+                  case 1: params = CalculationMethod.egyptian.getParameters(); break;
+                  case 2: params = CalculationMethod.umm_al_qura.getParameters(); break;
+                  case 3: params = CalculationMethod.karachi.getParameters(); break;
+                  case 4: params = CalculationMethod.dubai.getParameters(); break;
+                  case 5: params = CalculationMethod.kuwait.getParameters(); break;
+                  case 6: params = CalculationMethod.qatar.getParameters(); break;
+                  default: params = CalculationMethod.egyptian.getParameters();
+                }
+                params.madhab = Madhab.shafi;
+
+                final times = PrayerTimes.today(coords, params);
+                final isToday = day == now.day;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isToday ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3) : null,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: Text(
+                          '$day',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isToday ? Theme.of(context).colorScheme.primary : null,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _TimeCol('فجر', times.fajr),
+                              _TimeCol('ظهر', times.dhuhr),
+                              _TimeCol('عصر', times.asr),
+                              _TimeCol('مغرب', times.maghrib),
+                              _TimeCol('عشاء', times.isha),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _TimeCol extends StatelessWidget {
+  const _TimeCol(this.label, this.time);
+  final String label;
+  final DateTime time;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(
+          intl.DateFormat.jm('ar').format(time).replaceAll('م', '').replaceAll('ص', ''),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showLocationPicker(BuildContext context, AppController c) {
+  final cities = [
+    ('القدس', 31.7683, 35.2137),
+    ('غزة', 31.5017, 34.4667),
+    ('مكة المكرمة', 21.4225, 39.8262),
+    ('المدينة المنورة', 24.4672, 39.6024),
+    ('عمان', 31.9454, 35.9284),
+    ('القاهرة', 30.0444, 31.2357),
+    ('الرياض', 24.7136, 46.6753),
+    ('دبي', 25.2048, 55.2708),
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (context) => Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'تحديد الموقع',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final pos = await c.determinePosition();
+                c.updateSettings(c.settings.copyWith(
+                  latitude: pos.latitude,
+                  longitude: pos.longitude,
+                  locationName: 'موقعي الحالي',
+                ));
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('خطأ: $e')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.my_location),
+            label: const Text('استخدام الموقع الحالي (GPS)'),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text('أو اختر مدينة قريبة:', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          ),
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              itemCount: cities.length,
+              itemBuilder: (context, i) => ListTile(
+                title: Text(cities[i].$1),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: () {
+                  c.updateSettings(c.settings.copyWith(
+                    latitude: cities[i].$2,
+                    longitude: cities[i].$3,
+                    locationName: cities[i].$1,
+                  ));
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -1235,6 +1689,23 @@ class SettingsPage extends StatelessWidget {
             ],
             onChanged: (v) {
               if (v != null) c.updateSettings(s.copyWith(themeMode: v));
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int>(
+            value: s.calculationMethodIndex,
+            decoration: const InputDecoration(labelText: 'طريقة حساب مواقيت الصلاة'),
+            items: const [
+              DropdownMenuItem(value: 0, child: Text('رابطة العالم الإسلامي')),
+              DropdownMenuItem(value: 1, child: Text('الهيئة المصرية العامة للمساحة')),
+              DropdownMenuItem(value: 2, child: Text('جامعة أم القرى، مكة')),
+              DropdownMenuItem(value: 3, child: Text('جامعة العلوم الإسلامية، كراتشي')),
+              DropdownMenuItem(value: 4, child: Text('دبي')),
+              DropdownMenuItem(value: 5, child: Text('الكويت')),
+              DropdownMenuItem(value: 6, child: Text('قطر')),
+            ],
+            onChanged: (v) {
+              if (v != null) c.updateSettings(s.copyWith(calculationMethodIndex: v));
             },
           ),
           const SizedBox(height: 16),

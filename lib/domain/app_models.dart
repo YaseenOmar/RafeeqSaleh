@@ -65,24 +65,41 @@ class AppSettings {
     this.quranFontSize = 25,
     this.haptics = true,
     this.autoSave = true,
+    this.latitude,
+    this.longitude,
+    this.locationName,
+    this.calculationMethodIndex = 1, // Egyptian as default
   });
   final AppThemeMode themeMode;
   final double athkarFontSize;
   final double quranFontSize;
   final bool haptics;
   final bool autoSave;
+  final double? latitude;
+  final double? longitude;
+  final String? locationName;
+  final int calculationMethodIndex;
+
   AppSettings copyWith({
     AppThemeMode? themeMode,
     double? athkarFontSize,
     double? quranFontSize,
     bool? haptics,
     bool? autoSave,
+    double? latitude,
+    double? longitude,
+    String? locationName,
+    int? calculationMethodIndex,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     athkarFontSize: athkarFontSize ?? this.athkarFontSize,
     quranFontSize: quranFontSize ?? this.quranFontSize,
     haptics: haptics ?? this.haptics,
     autoSave: autoSave ?? this.autoSave,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    locationName: locationName ?? this.locationName,
+    calculationMethodIndex: calculationMethodIndex ?? this.calculationMethodIndex,
   );
   Map<String, dynamic> toJson() => {
     'themeMode': themeMode.name,
@@ -90,6 +107,10 @@ class AppSettings {
     'quranFontSize': quranFontSize,
     'haptics': haptics,
     'autoSave': autoSave,
+    'latitude': latitude,
+    'longitude': longitude,
+    'locationName': locationName,
+    'calculationMethodIndex': calculationMethodIndex,
   };
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
     themeMode:
@@ -101,5 +122,9 @@ class AppSettings {
     quranFontSize: (json['quranFontSize'] as num?)?.toDouble() ?? 25,
     haptics: json['haptics'] as bool? ?? true,
     autoSave: json['autoSave'] as bool? ?? true,
+    latitude: (json['latitude'] as num?)?.toDouble(),
+    longitude: (json['longitude'] as num?)?.toDouble(),
+    locationName: json['locationName'] as String?,
+    calculationMethodIndex: (json['calculationMethodIndex'] as num?)?.toInt() ?? 1,
   );
 }

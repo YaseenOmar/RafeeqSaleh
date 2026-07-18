@@ -44,6 +44,8 @@ dependencies:
   shared_preferences: ^2.5.5
   share_plus: ^13.2.0
   quran: ^1.4.1
+  adhan: ^2.0.0+1
+  geolocator: ^13.0.2
 
 dev_dependencies:
   flutter_test:

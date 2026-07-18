@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'data/local_store.dart';
 import 'domain/app_models.dart';
 import 'presentation/app_controller.dart';
@@ -10,6 +11,7 @@ import 'presentation/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ar', null);
   final preferences = await SharedPreferences.getInstance();
   final controller = AppController(
     AppRepository(PreferencesLocalStore(preferences)),
