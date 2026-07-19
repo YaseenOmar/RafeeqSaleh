@@ -59,7 +59,8 @@ class AppRepository {
   static const _settings = 'settings_v1',
       _progress = 'quran_progress_v1',
       _history = 'quran_history_v1',
-      _bookmarks = 'quran_bookmarks_v1';
+      _bookmarks = 'quran_bookmarks_v1',
+      _reminders = 'notification_reminders_v1';
   Future<AppSettings> loadSettings() async =>
       AppSettings.fromJson(await store.readJson(_settings) ?? {});
   Future<void> saveSettings(AppSettings value) =>
@@ -97,6 +98,28 @@ class AppRepository {
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   Future<void> saveBookmarks(List<QuranBookmark> values) =>
       store.writeList(_bookmarks, values.map((e) => e.toJson()).toList());
+  Future<List<NotificationReminder>> loadReminders() async {
+    final saved = (await store.readList(_reminders))
+        .whereType<Map>()
+        .map(
+          (value) =>
+              NotificationReminder.fromJson(Map<String, dynamic>.from(value)),
+        )
+        .toList();
+    if (saved.isEmpty) return NotificationReminder.defaults;
+    return NotificationReminder.defaults.map((fallback) {
+      final previous = saved
+          .where((item) => item.id == fallback.id)
+          .firstOrNull;
+      final wasTemporaryPrayerReminder =
+          fallback.id < 1100 &&
+          (previous?.title.startsWith('حان وقت صلاة') ?? false);
+      return wasTemporaryPrayerReminder ? fallback : previous ?? fallback;
+    }).toList();
+  }
+
+  Future<void> saveReminders(List<NotificationReminder> values) =>
+      store.writeList(_reminders, values.map((e) => e.toJson()).toList());
   Future<Map<String, int>> loadAthkarProgress() async {
     final json = await store.readJson('athkar_progress_v1') ?? {};
     return json.map((k, v) => MapEntry(k, (v as num).toInt()));

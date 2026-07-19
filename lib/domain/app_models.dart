@@ -1,5 +1,138 @@
 enum AppThemeMode { system, light, dark }
 
+class NotificationReminder {
+  const NotificationReminder({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.hour,
+    required this.minute,
+    required this.iconCodePoint,
+    this.enabled = true,
+  });
+
+  final int id;
+  final String title;
+  final String body;
+  final int hour;
+  final int minute;
+  final int iconCodePoint;
+  final bool enabled;
+
+  static const defaults = [
+    NotificationReminder(
+      id: 1001,
+      title: 'حان وقت أذكار الصباح',
+      body: 'ابدأ صباحك بذكر الله، دقائق قليلة تملأ يومك طمأنينة وبركة.',
+      hour: 7,
+      minute: 0,
+      iconCodePoint: 0xe430,
+    ),
+    NotificationReminder(
+      id: 1002,
+      title: 'وردك اليومي من القرآن',
+      body: 'لا تنسَ نصيبك اليوم من كلام الله، افتح مصحفك وتابع من حيث توقفت.',
+      hour: 9,
+      minute: 0,
+      iconCodePoint: 0xf53d,
+    ),
+    NotificationReminder(
+      id: 1003,
+      title: 'حان وقت أذكار المساء',
+      body: 'اختم يومك بحفظ الله وسكينته مع أذكار المساء.',
+      hour: 18,
+      minute: 0,
+      iconCodePoint: 0xe51c,
+    ),
+    NotificationReminder(
+      id: 1004,
+      title: 'دقائق للتسبيح',
+      body: 'سبحان الله، والحمد لله، والله أكبر. اجعل لك خبيئة من الذكر.',
+      hour: 21,
+      minute: 0,
+      iconCodePoint: 0xf04c,
+    ),
+    NotificationReminder(
+      id: 1101,
+      title: 'حان وقت صلاة الفجر',
+      body: 'دخل الآن وقت صلاة الفجر.',
+      hour: 5,
+      minute: 0,
+      iconCodePoint: 0xe430,
+    ),
+    NotificationReminder(
+      id: 1102,
+      title: 'حان وقت صلاة الظهر',
+      body: 'دخل الآن وقت صلاة الظهر.',
+      hour: 12,
+      minute: 0,
+      iconCodePoint: 0xf53d,
+    ),
+    NotificationReminder(
+      id: 1103,
+      title: 'حان وقت صلاة العصر',
+      body: 'دخل الآن وقت صلاة العصر.',
+      hour: 15,
+      minute: 0,
+      iconCodePoint: 0xe51c,
+    ),
+    NotificationReminder(
+      id: 1104,
+      title: 'حان وقت صلاة المغرب',
+      body: 'دخل الآن وقت صلاة المغرب.',
+      hour: 18,
+      minute: 0,
+      iconCodePoint: 0xf04c,
+    ),
+    NotificationReminder(
+      id: 1105,
+      title: 'حان وقت صلاة العشاء',
+      body: 'دخل الآن وقت صلاة العشاء.',
+      hour: 20,
+      minute: 0,
+      iconCodePoint: 0xe3a8,
+    ),
+  ];
+
+  NotificationReminder copyWith({int? hour, int? minute, bool? enabled}) =>
+      NotificationReminder(
+        id: id,
+        title: title,
+        body: body,
+        hour: hour ?? this.hour,
+        minute: minute ?? this.minute,
+        iconCodePoint: iconCodePoint,
+        enabled: enabled ?? this.enabled,
+      );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'body': body,
+    'hour': hour,
+    'minute': minute,
+    'iconCodePoint': iconCodePoint,
+    'enabled': enabled,
+  };
+
+  factory NotificationReminder.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] as num?)?.toInt();
+    final fallback = defaults.where((item) => item.id == id).firstOrNull;
+    return NotificationReminder(
+      id: id ?? fallback?.id ?? 0,
+      title: json['title'] as String? ?? fallback?.title ?? '',
+      body: json['body'] as String? ?? fallback?.body ?? '',
+      hour: (json['hour'] as num?)?.toInt() ?? fallback?.hour ?? 8,
+      minute: (json['minute'] as num?)?.toInt() ?? fallback?.minute ?? 0,
+      iconCodePoint:
+          (json['iconCodePoint'] as num?)?.toInt() ??
+          fallback?.iconCodePoint ??
+          0xe7f4,
+      enabled: json['enabled'] as bool? ?? fallback?.enabled ?? true,
+    );
+  }
+}
+
 class ReadingProgress {
   const ReadingProgress({
     required this.surah,
@@ -99,7 +232,8 @@ class AppSettings {
     latitude: latitude ?? this.latitude,
     longitude: longitude ?? this.longitude,
     locationName: locationName ?? this.locationName,
-    calculationMethodIndex: calculationMethodIndex ?? this.calculationMethodIndex,
+    calculationMethodIndex:
+        calculationMethodIndex ?? this.calculationMethodIndex,
   );
   Map<String, dynamic> toJson() => {
     'themeMode': themeMode.name,
@@ -125,6 +259,7 @@ class AppSettings {
     latitude: (json['latitude'] as num?)?.toDouble(),
     longitude: (json['longitude'] as num?)?.toDouble(),
     locationName: json['locationName'] as String?,
-    calculationMethodIndex: (json['calculationMethodIndex'] as num?)?.toInt() ?? 1,
+    calculationMethodIndex:
+        (json['calculationMethodIndex'] as num?)?.toInt() ?? 1,
   );
 }

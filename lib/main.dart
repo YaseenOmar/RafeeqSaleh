@@ -6,15 +6,17 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'data/local_store.dart';
 import 'domain/app_models.dart';
 import 'presentation/app_controller.dart';
-import 'presentation/app_shell.dart';
 import 'presentation/splash_screen.dart';
+import 'services/local_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar', null);
   final preferences = await SharedPreferences.getInstance();
+  final notificationService = LocalNotificationService.instance;
   final controller = AppController(
     AppRepository(PreferencesLocalStore(preferences)),
+    notificationService,
   );
   await controller.load();
   runApp(RafeeqApp(controller: controller));
@@ -51,22 +53,33 @@ class RafeeqApp extends StatelessWidget {
   );
   ThemeData _theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
-    const seed = Color(0xff176b55);
+    const seed = Color(0xff063b30);
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
         seedColor: seed,
         brightness: brightness,
+        primary: dark
+            ? const Color(0xff26a69a)
+            : seed, // Lighter primary for dark mode
+        secondary: const Color(0xff80cbc4),
       ),
       fontFamily: 'NotoSerif',
       scaffoldBackgroundColor: dark
-          ? const Color(0xff071f19)
-          : const Color(0xfff6faf7),
+          ? const Color(0xff0a1a15)
+          : const Color(0xfff4f9f8),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: dark ? const Color(0xff10372d) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        color: dark ? const Color(0xff162b25) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: dark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.03),
+          ),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: true,
