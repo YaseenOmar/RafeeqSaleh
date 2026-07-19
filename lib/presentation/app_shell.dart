@@ -31,6 +31,7 @@ class _AppShellState extends State<AppShell> {
   void _handleBack(bool didPop, Object? result) {
     if (didPop) return;
 
+
     if (index != 0) {
       _selectPage(0);
       return;
