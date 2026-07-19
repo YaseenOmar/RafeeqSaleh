@@ -1,0 +1,7 @@
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keep class com.google.firebase.messaging.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-keep class com.google.android.gms.measurement.** { *; }
+-keep class com.google.android.gms.internal.** { *; }
+-keep class com.google.firebase.** { *; }

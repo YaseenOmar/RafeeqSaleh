@@ -23,11 +23,17 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.bounceInOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.bounceInOut),
+      ),
     );
 
     _controller.forward();
@@ -36,10 +42,12 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => const AppShell(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const AppShell(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
             transitionDuration: const Duration(milliseconds: 800),
           ),
         );
@@ -55,6 +63,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -62,10 +72,9 @@ class _SplashScreenState extends State<SplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primaryContainer,
-            ],
+            colors: isDark
+                ? const [Color(0xff0a1a15), Color(0xff063b30)]
+                : const [Color(0xff063b30), Color(0xff042f24)],
           ),
         ),
         child: Column(
@@ -82,16 +91,13 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 );
               },
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.menu_book,
-                  size: 100,
-                  color: Colors.white,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: const Image(
+                  image: AssetImage('assets/images/app_icon.png'),
+                  width: 160,
+                  height: 160,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -99,10 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
             AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: child,
-                );
+                return Opacity(opacity: _fadeAnimation.value, child: child);
               },
               child: const Column(
                 children: [
@@ -118,10 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
                   SizedBox(height: 8),
                   Text(
                     'رفيقك في كل وقت وحين',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                 ],
               ),

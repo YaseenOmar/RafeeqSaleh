@@ -3,8 +3,46 @@ import 'package:flutter/material.dart';
 import '../domain/app_models.dart';
 import 'app_controller.dart';
 
-class NotificationSettingsPage extends StatelessWidget {
+class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
+
+  @override
+  State<NotificationSettingsPage> createState() =>
+      _NotificationSettingsPageState();
+}
+
+class _NotificationSettingsPageState extends State<NotificationSettingsPage>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _initializeNotificationFeature();
+      }
+    });
+  }
+
+  Future<void> _initializeNotificationFeature() async {
+    final controller = AppScope.of(context);
+    await controller.refreshNotificationState();
+    if (!mounted) return;
+    await controller.requestNotificationsOnFirstFeatureUse();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AppScope.of(context).refreshNotificationState();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +121,33 @@ class NotificationSettingsPage extends StatelessWidget {
                 ),
               ),
             ),
+          ] else ...[
+            const SizedBox(height: 14),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: colors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        controller.notificationSyncInProgress
+                            ? 'جارٍ تجهيز التذكيرات...'
+                            : '${controller.scheduledNotificationCount} إشعارًا مجدولًا حاليًا',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: controller.notificationSyncInProgress
+                          ? null
+                          : () => _sendTest(context, controller),
+                      child: const Text('اختبار الآن'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
           const SizedBox(height: 18),
           Text(
@@ -127,11 +192,27 @@ class NotificationSettingsPage extends StatelessWidget {
               ),
           const SizedBox(height: 8),
           Text(
-            'تُحسب المواعيد حسب موقعك وطريقة الحساب المختارة. قد تؤخر بعض الأجهزة الإشعار دقائق قليلة لتوفير البطارية.',
+            controller.settings.latitude == null
+                ? 'التذكيرات اليومية جاهزة. إشعارات الصلاة تحتاج تحديد الموقع أولًا من إعدادات مواقيت الصلاة.'
+                : 'تُحسب المواعيد حسب موقعك وطريقة الحساب المختارة. قد تؤخر بعض الأجهزة الإشعار دقائق قليلة لتوفير البطارية.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _sendTest(BuildContext context, AppController controller) async {
+    final sent = await controller.sendTestNotification();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          sent
+              ? 'تم إرسال إشعار تجريبي'
+              : 'تعذّر إرسال الإشعار. تأكد من إذن الإشعارات.',
+        ),
       ),
     );
   }
@@ -142,19 +223,36 @@ class NotificationSettingsPage extends StatelessWidget {
   ) async {
     final granted = await controller.enableNotifications();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          granted
-              ? 'تم تفعيل وجدولة التذكيرات'
-              : 'لم يتم منح الإذن. يمكنك تفعيله من إعدادات الجهاز.',
+    if (granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تفعيل وجدولة التذكيرات')),
+      );
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.notifications_off_outlined),
+        title: const Text('السماح بالإشعارات'),
+        content: const Text(
+          'لم يمنح Android صلاحية الإشعارات. إذا سبق أن رفضت الطلب، '
+          'يمنع النظام ظهور نافذة السماح مرة أخرى ويجب تفعيلها من إعدادات التطبيق.',
         ),
-        action: granted
-            ? null
-            : SnackBarAction(
-                label: 'الإعدادات',
-                onPressed: controller.openDeviceAppSettings,
-              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('لاحقًا'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              controller.openDeviceAppSettings();
+            },
+            icon: const Icon(Icons.settings_outlined),
+            label: const Text('فتح الإعدادات'),
+          ),
+        ],
       ),
     );
   }
@@ -221,10 +319,7 @@ class _ReminderCard extends StatelessWidget {
                 color: colors.primaryContainer,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(
-                IconData(reminder.iconCodePoint, fontFamily: 'MaterialIcons'),
-                color: colors.primary,
-              ),
+              child: Icon(_iconForReminder(reminder.id), color: colors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -264,4 +359,15 @@ class _ReminderCard extends StatelessWidget {
       ),
     );
   }
+
+  IconData _iconForReminder(int id) => switch (id) {
+    1001 || 1101 => Icons.wb_twilight_outlined,
+    1002 => Icons.menu_book_outlined,
+    1003 || 1104 => Icons.nights_stay_outlined,
+    1004 => Icons.auto_awesome_outlined,
+    1102 => Icons.wb_sunny_outlined,
+    1103 => Icons.light_mode_outlined,
+    1105 => Icons.dark_mode_outlined,
+    _ => Icons.notifications_outlined,
+  };
 }

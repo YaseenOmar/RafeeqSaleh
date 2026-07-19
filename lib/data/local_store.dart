@@ -60,7 +60,8 @@ class AppRepository {
       _progress = 'quran_progress_v1',
       _history = 'quran_history_v1',
       _bookmarks = 'quran_bookmarks_v1',
-      _reminders = 'notification_reminders_v1';
+      _reminders = 'notification_reminders_v1',
+      _notificationPermissionRequested = 'notification_permission_requested_v1';
   Future<AppSettings> loadSettings() async =>
       AppSettings.fromJson(await store.readJson(_settings) ?? {});
   Future<void> saveSettings(AppSettings value) =>
@@ -120,6 +121,10 @@ class AppRepository {
 
   Future<void> saveReminders(List<NotificationReminder> values) =>
       store.writeList(_reminders, values.map((e) => e.toJson()).toList());
+  Future<bool> loadNotificationPermissionRequested() async =>
+      await store.readInt(_notificationPermissionRequested) == 1;
+  Future<void> saveNotificationPermissionRequested() =>
+      store.writeInt(_notificationPermissionRequested, 1);
   Future<Map<String, int>> loadAthkarProgress() async {
     final json = await store.readJson('athkar_progress_v1') ?? {};
     return json.map((k, v) => MapEntry(k, (v as num).toInt()));

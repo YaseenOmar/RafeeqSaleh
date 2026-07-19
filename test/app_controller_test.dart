@@ -94,4 +94,13 @@ void main() {
     expect(restored.tasbihCount, 1);
     expect(restored.tasbihGoal, 100);
   });
+  test(
+    'Given notification permission was requested When restored Then it is not requested automatically again',
+    () async {
+      final repository = AppRepository(store);
+      expect(await repository.loadNotificationPermissionRequested(), isFalse);
+      await repository.saveNotificationPermissionRequested();
+      expect(await repository.loadNotificationPermissionRequested(), isTrue);
+    },
+  );
 }

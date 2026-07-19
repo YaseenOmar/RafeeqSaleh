@@ -18,10 +18,15 @@ class AppController extends ChangeNotifier {
   int tasbihCount = 0, tasbihGoal = 33;
   List<NotificationReminder> reminders = NotificationReminder.defaults;
   bool notificationPermissionGranted = false;
+  bool notificationSyncInProgress = false;
+  int scheduledNotificationCount = 0;
+  String? notificationError;
+  bool notificationPermissionRequested = false;
 
   PrayerTimes? prayerTimes;
   Timer? _prayerTimer;
   String? _lastPrayerSyncKey;
+  bool _notificationPermissionRequestInProgress = false;
 
   Future<void> load() async {
     settings = await repository.loadSettings();
@@ -32,6 +37,8 @@ class AppController extends ChangeNotifier {
     tasbihCount = await repository.loadTasbih();
     tasbihGoal = await repository.loadTasbihGoal();
     reminders = await repository.loadReminders();
+    notificationPermissionRequested = await repository
+        .loadNotificationPermissionRequested();
     // Notification plugins use a platform channel and must never hold up app
     // startup. Some devices can leave this call pending while Android restores
     // the activity, which otherwise keeps the native splash visible forever.
@@ -57,23 +64,43 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadNotificationState() async {
+  Future<void> refreshNotificationState() async {
     final service = notificationService;
-    if (service == null) return;
+    if (service == null || _notificationPermissionRequestInProgress) return;
     try {
-      notificationPermissionGranted = await service.permissionGranted().timeout(
+      var granted = await service.permissionGranted().timeout(
         const Duration(seconds: 5),
       );
-      if (notificationPermissionGranted) {
-        await _syncPrayerNotifications().timeout(const Duration(seconds: 10));
+      // Some Android builds briefly return a stale value while the system
+      // permission sheet or app settings activity is closing.
+      if (!granted) {
+        await Future<void>.delayed(const Duration(milliseconds: 350));
+        granted = await service.permissionGranted().timeout(
+          const Duration(seconds: 5),
+        );
       }
+      notificationPermissionGranted = granted;
       notifyListeners();
+    } catch (error) {
+      notificationError = error.toString();
+      notifyListeners();
+      return;
+    }
+
+    if (!notificationPermissionGranted) {
+      scheduledNotificationCount = 0;
+      return;
+    }
+
+    try {
+      await _syncNotifications().timeout(const Duration(seconds: 15));
     } catch (_) {
-      // Notifications are optional; the rest of the app stays available when
-      // a device does not support or respond to the notification channel.
-      notificationPermissionGranted = false;
+      // Permission remains granted even when an individual device refuses or
+      // delays scheduling alarms. The scheduling error is shown separately.
     }
   }
+
+  Future<void> _loadNotificationState() => refreshNotificationState();
 
   void _startPrayerTimer() {
     _prayerTimer?.cancel();
@@ -93,7 +120,7 @@ class AppController extends ChangeNotifier {
     prayerTimes = PrayerTimes.today(coordinates, params);
     _applyTodayPrayerTimes(prayerTimes!);
     if (notificationPermissionGranted) {
-      unawaited(_syncPrayerNotifications());
+      unawaited(_syncNotifications());
     }
     notifyListeners();
   }
@@ -138,9 +165,9 @@ class AppController extends ChangeNotifier {
     return dates;
   }
 
-  Future<void> _syncPrayerNotifications() async {
+  Future<void> _syncNotifications({bool force = false}) async {
     final service = notificationService;
-    if (service == null || settings.latitude == null) return;
+    if (service == null) return;
     final now = DateTime.now();
     final enabled = reminders
         .map((item) => '${item.id}:${item.enabled}:${item.hour}:${item.minute}')
@@ -149,9 +176,26 @@ class AppController extends ChangeNotifier {
         '${now.year}-${now.month}-${now.day}:'
         '${settings.latitude}:${settings.longitude}:'
         '${settings.calculationMethodIndex}:$enabled';
-    if (_lastPrayerSyncKey == syncKey) return;
-    await service.sync(reminders, _prayerDatesForNextWeek());
-    _lastPrayerSyncKey = syncKey;
+    if (!force && _lastPrayerSyncKey == syncKey) {
+      scheduledNotificationCount = await service.pendingCount();
+      return;
+    }
+    notificationSyncInProgress = true;
+    notificationError = null;
+    notifyListeners();
+    try {
+      scheduledNotificationCount = await service.sync(
+        reminders,
+        _prayerDatesForNextWeek(),
+      );
+      _lastPrayerSyncKey = syncKey;
+    } catch (error) {
+      notificationError = error.toString();
+      rethrow;
+    } finally {
+      notificationSyncInProgress = false;
+      notifyListeners();
+    }
   }
 
   CalculationParameters _getParams() {
@@ -217,26 +261,60 @@ class AppController extends ChangeNotifier {
   Future<bool> enableNotifications() async {
     final service = notificationService;
     if (service == null) return false;
+    _notificationPermissionRequestInProgress = true;
     try {
-      notificationPermissionGranted = await service.requestPermission();
+      var granted = await service.requestPermission();
+      if (!notificationPermissionRequested) {
+        notificationPermissionRequested = true;
+        await repository.saveNotificationPermissionRequested();
+      }
+      if (!granted) {
+        await Future<void>.delayed(const Duration(milliseconds: 350));
+        granted = await service.permissionGranted();
+      }
+      notificationPermissionGranted = granted;
       notifyListeners();
       if (notificationPermissionGranted) {
         // Permission and scheduling are separate operations. A scheduling
         // failure must not make a granted permission look disabled in the UI.
         try {
-          await _syncPrayerNotifications();
+          await _syncNotifications(force: true);
         } catch (_) {}
-      } else {
-        await openDeviceAppSettings();
       }
-    } catch (_) {
-      notificationPermissionGranted = false;
+    } catch (error) {
+      notificationError = error.toString();
       notifyListeners();
+    } finally {
+      _notificationPermissionRequestInProgress = false;
     }
     return notificationPermissionGranted;
   }
 
+  Future<bool?> requestNotificationsOnFirstFeatureUse() async {
+    if (notificationPermissionGranted || notificationPermissionRequested) {
+      return null;
+    }
+    return enableNotifications();
+  }
+
   Future<bool> openDeviceAppSettings() => Geolocator.openAppSettings();
+
+  Future<bool> sendTestNotification() async {
+    final service = notificationService;
+    if (service == null) return false;
+    if (!notificationPermissionGranted) {
+      final granted = await enableNotifications();
+      if (!granted) return false;
+    }
+    try {
+      await service.showTestNotification();
+      return true;
+    } catch (error) {
+      notificationError = error.toString();
+      notifyListeners();
+      return false;
+    }
+  }
 
   Future<void> updateReminder(NotificationReminder value) async {
     reminders = reminders
@@ -244,7 +322,7 @@ class AppController extends ChangeNotifier {
         .toList();
     await repository.saveReminders(reminders);
     if (notificationPermissionGranted) {
-      await _syncPrayerNotifications();
+      await _syncNotifications(force: true);
     }
     notifyListeners();
   }

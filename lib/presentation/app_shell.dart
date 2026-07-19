@@ -26,6 +26,22 @@ class _AppShellState extends State<AppShell> {
   int index = 0;
   DateTime? _lastBackPress;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initNotifications();
+    });
+  }
+
+  Future<void> _initNotifications() async {
+    if (!mounted) return;
+    final controller = AppScope.of(context);
+    // Request permission on app start as requested.
+    // This will show the system dialog on Android 13+ if not already granted.
+    await controller.enableNotifications();
+  }
+
   void _selectPage(int value) {
     setState(() {
       index = value;
